@@ -1,5 +1,7 @@
 using Forecast.Clients;
 using Forecast.Models.Weather;
+using Sprache;
+using System.Globalization;
 
 namespace Forecast.Controllers;
 
@@ -22,11 +24,22 @@ public class CurrentWeatherController
             throw new ArgumentException($"Провайдер '{providerName}' не найден.");
         }
 
-        decimal temp;
-        if (IsCoordinates(location))
+        decimal temp = 0;
+
+        if (location.Contains(','))
         {
-            var parts = location.Split(',');
-            temp = await client.LocationCurrentTemperature(decimal.Parse(parts[0]), decimal.Parse(parts[1]));
+            var parts = location.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 2)
+            {
+                string latStr = parts[0].Trim().Replace(',', '.');
+                string lonStr = parts[1].Trim().Replace(',', '.');
+
+                decimal lat = decimal.Parse(latStr, CultureInfo.InvariantCulture);
+                decimal lon = decimal.Parse(lonStr, CultureInfo.InvariantCulture);
+
+                temp = await client.LocationCurrentTemperature(lat, lon);
+            }
         }
         else
         {
@@ -43,5 +56,4 @@ public class CurrentWeatherController
         return await Task.WhenAll(tasks);
     }
 
-    private bool IsCoordinates(string input) => input.Contains(',');
 }

@@ -19,6 +19,10 @@ public static class WeatherApi
             .WithTags(["weather"])
             .WithDescription("Возвращает погоду для города (Минск, Лондон...) или координат (lat,lon)");
 
+        groups.MapPost("weather/batch", WeatherApi.HandleGetWeatherBatch)
+        .WithName("GetWeatherBatch")
+        .WithDescription("Получение погоды для списка локаций параллельно");
+
         return groups;
     }
 
@@ -36,6 +40,22 @@ public static class WeatherApi
         catch (Exception e)
         {
             return TypedResults.BadRequest(Status.Create(400, e.Message));
+        }
+    }
+
+    private static async Task<IResult> HandleGetWeatherBatch(
+    [FromServices] CurrentWeatherController controller,
+    [FromBody] string[] locations,
+    [FromQuery] string provider = "OpenWeather")
+    {
+        try
+        {
+            var results = await controller.GetWeatherBatch(locations, provider);
+            return TypedResults.Ok(results);
+        }
+        catch (Exception e)
+        {
+            return TypedResults.BadRequest(e.Message);
         }
     }
 }
