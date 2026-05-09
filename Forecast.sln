@@ -1,0 +1,24 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Forecast", "Forecast\Forecast.csproj", "{520E252E-E8A7-989A-4D4A-9E9FDF81287A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForecastTest", "ForecastTest\ForecastTest.csproj", "{04992D69-CBBD-77C5-3263-293CF84AD1B7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{520E252E-E8A7-989A-4D4A-9E9FDF81287A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{520E252E-E8A7-989A-4D4A-9E9FDF81287A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{520E252E-E8A7-989A-4D4A-9E9FDF81287A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{520E252E-E8A7-989A-4D4A-9E9FDF81287A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04992D69-CBBD-77C5-3263-293CF84AD1B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04992D69-CBBD-77C5-3263-293CF84AD1B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04992D69-CBBD-77C5-3263-293CF84AD1B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04992D69-CBBD-77C5-3263-293CF84AD1B7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
