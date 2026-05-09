@@ -38,6 +38,21 @@ class OpenWeatherDataClient : IWeatherDataClient
             throw new ApiCallException($"failed to call openweather: {e.Message}.", inner: e);
         }
     }
+
+    public string ProviderName => "OpenWeather";
+
+    public async Task<decimal> CityCurrentTemperature(string cityName)
+    {
+        try
+        {
+            var response = await client.GetAsync($"?q={cityName}&appid={apiKey}&units=metric");
+            if (!response.IsSuccessStatusCode) throw new ApiCallException("City not found");
+
+            var data = await response.Content.ReadFromJsonAsync<OpenWeatherResponse>();
+            return data?.Main?.Temp ?? throw new ApiCallException("Failed to decode");
+        }
+        catch (HttpRequestException e) { throw new ApiCallException(e.Message); }
+    }
 }
 
 class OpenWeatherResponse

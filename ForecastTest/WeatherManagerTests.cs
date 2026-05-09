@@ -1,4 +1,5 @@
-﻿using Forecast.Models;
+﻿using Forecast.Clients;
+using Forecast.Models;
 using Forecast.Services;
 using Moq;
 using Xunit;
@@ -38,5 +39,14 @@ public class WeatherManagerTests
 
         Assert.Equal(2, results.Count());
         googleMock.Verify(p => p.GetWeatherAsync(It.IsAny<double>(), It.IsAny<double>()), Times.Exactly(2));
+    }
+    [Fact]
+    public async Task ShouldReturnCoordinatesForKnownCity()
+    {
+        var googleMock = new Mock<IWeatherDataClient>();
+        googleMock.Setup(c => c.ProviderName).Returns("Google");
+
+        var clients = new List<IWeatherDataClient> { googleMock.Object };
+
     }
 }
