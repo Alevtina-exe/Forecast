@@ -32,6 +32,7 @@ public class WeatherManager
     }
     public async Task<IEnumerable<WeatherResult>> GetWeatherForMultipleCitiesAsync(IEnumerable<string> cities, string providerName)
     {
-        throw new NotImplementedException();
+        var tasks = cities.Select(city => GetForecastAsync(city, providerName)).ToList();
+        return await Task.WhenAll(tasks);
     }
 }

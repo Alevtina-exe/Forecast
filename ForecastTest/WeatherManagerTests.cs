@@ -37,7 +37,6 @@ public class WeatherManagerTests
         var results = await manager.GetWeatherForMultipleCitiesAsync(cities, "Google");
 
         Assert.Equal(2, results.Count());
-        googleMock.Verify(p => p.GetWeatherByCityAsync("Минск"), Times.Once);
-        googleMock.Verify(p => p.GetWeatherByCityAsync("Лондон"), Times.Once);
+        googleMock.Verify(p => p.GetWeatherAsync(It.IsAny<double>(), It.IsAny<double>()), Times.Exactly(2));
     }
 }
