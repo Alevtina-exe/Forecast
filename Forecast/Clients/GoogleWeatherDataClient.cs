@@ -2,6 +2,13 @@
 
 public class GoogleWeatherDataClient : IWeatherDataClient
 {
+    private readonly HttpClient _httpClient;
+
+    public GoogleWeatherDataClient(HttpClient httpClient)
+    {
+        _httpClient = httpClient;
+    }
+
     public string ProviderName => "Google";
 
     public Task<decimal> LocationCurrentTemperature(decimal latitude, decimal longitude)
@@ -11,6 +18,6 @@ public class GoogleWeatherDataClient : IWeatherDataClient
 
     public Task<decimal> CityCurrentTemperature(string cityName)
     {
-        return Task.FromResult(20.0m);
+        return Task.FromResult(22.5m);
     }
 }

@@ -1,3 +1,3 @@
 namespace Forecast.Models.Weather;
 
-record CurrentWeather(decimal Temperature);
+public record CurrentWeather(decimal Temperature);

@@ -1,10 +1,11 @@
-using System.ComponentModel;
 using Forecast.Controllers;
 using Forecast.Models.Weather;
 using Forecast.Shared.Responses;
 using Forecast.Utils;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel;
 
 namespace Forecast.Api;
 
@@ -13,43 +14,28 @@ public static class WeatherApi
     public static RouteGroupBuilder MapCurrentWeatherApi(this RouteGroupBuilder groups)
     {
         groups
-            .MapGet("weather", WeatherApi.HandleGetCurrentWeather)
+            .MapGet("weather/{location}", WeatherApi.HandleGetCurrentWeather)
             .WithName("GetCurrentWeather")
-            .WithDisplayName("Get Current Weather")
             .WithTags(["weather"])
-            .WithDescription("Returns current weather for given coordinates");
+            .WithDescription("Возвращает погоду для города (Минск, Лондон...) или координат (lat,lon)");
 
         return groups;
     }
 
-    private static async Task<
-        Results<Ok<Success<CurrentWeather>>, BadRequest<Status>, InternalServerError<Status>>
-    > HandleGetCurrentWeather(
+    private static async Task<IResult> HandleGetCurrentWeather(
         [FromServices] CurrentWeatherController controller,
-        [DefaultValue("18.300231990440125")] string lat,
-        [DefaultValue("-64.8251590359234")] string lon
+        string location,
+        [FromQuery] string provider = "OpenWeather" 
     )
     {
         try
         {
-            var latitude = decimal.Parse(lat);
-            var longitude = decimal.Parse(lon);
-
-            var weather = await controller.GetCurrentWeather(latitude, longitude);
-
+            var weather = await controller.GetCurrentWeather(location, provider);
             return TypedResults.Ok(Success.Create(200, "success", weather));
         }
-        catch (FormatException)
+        catch (Exception e)
         {
-            return TypedResults.BadRequest(Status.Create(400, "invalid coordinates"));
-        }
-        catch (OverflowException)
-        {
-            return TypedResults.BadRequest(Status.Create(400, "invalid coordinates"));
-        }
-        catch (ApiCallException e)
-        {
-            return TypedResults.InternalServerError(Status.Create(500, e.Message));
+            return TypedResults.BadRequest(Status.Create(400, e.Message));
         }
     }
 }
