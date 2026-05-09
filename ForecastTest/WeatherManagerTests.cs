@@ -1,6 +1,7 @@
-﻿using Moq;
-using Xunit;
+﻿using Forecast.Models;
 using Forecast.Services;
+using Moq;
+using Xunit;
 
 public class WeatherManagerTests
 {
@@ -18,5 +19,25 @@ public class WeatherManagerTests
         await manager.GetForecastAsync("Minsk", "Google");
 
         googleMock.Verify(p => p.GetWeatherByCityAsync("Minsk"), Times.Once);
+    }
+    [Fact]
+    public async Task GetWeatherForMultipleCities_ShouldReturnResultsForEachCity()
+    {
+
+        var googleMock = new Mock<IWeatherProvider>();
+        googleMock.Setup(p => p.Name).Returns("Google");
+
+        googleMock.Setup(p => p.GetWeatherByCityAsync(It.IsAny<string>()))
+                  .ReturnsAsync((string city) => new WeatherResult(city, 20.0, "Sunny", "Google"));
+
+        var manager = new WeatherManager(new List<IWeatherProvider> { googleMock.Object });
+        var cities = new List<string> { "Минск", "Лондон" };
+
+
+        var results = await manager.GetWeatherForMultipleCitiesAsync(cities, "Google");
+
+        Assert.Equal(2, results.Count());
+        googleMock.Verify(p => p.GetWeatherByCityAsync("Минск"), Times.Once);
+        googleMock.Verify(p => p.GetWeatherByCityAsync("Лондон"), Times.Once);
     }
 }

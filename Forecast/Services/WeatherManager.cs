@@ -30,4 +30,8 @@ public class WeatherManager
 
         return await provider.GetWeatherByCityAsync(city);
     }
+    public async Task<IEnumerable<WeatherResult>> GetWeatherForMultipleCitiesAsync(IEnumerable<string> cities, string providerName)
+    {
+        throw new NotImplementedException();
+    }
 }
