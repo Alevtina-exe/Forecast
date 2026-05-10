@@ -32,7 +32,7 @@ public static class WeatherApi
         return groups;
     }
 
-    private static async Task<IResult> HandleGetCurrentWeather(
+    public static async Task<IResult> HandleGetCurrentWeather(
         [FromServices] CurrentWeatherController controller,
         string location,
         [FromQuery] string provider = "OpenWeather" 
@@ -49,7 +49,7 @@ public static class WeatherApi
         }
     }
 
-    private static async Task<IResult> HandleGetWeatherBatch(
+    public static async Task<IResult> HandleGetWeatherBatch(
         [FromServices] CurrentWeatherController controller,
         [FromQuery] string[] locations,
         [FromQuery] string provider = "OpenWeather")
@@ -65,7 +65,7 @@ public static class WeatherApi
         }
     }
 
-    private static async Task<IResult> HandleGetForecast(
+    public static async Task<IResult> HandleGetForecast(
     [FromServices] CurrentWeatherController controller,
     [FromQuery] string location,
     [FromQuery] string provider = "OpenWeather")

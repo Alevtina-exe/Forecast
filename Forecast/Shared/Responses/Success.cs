@@ -2,7 +2,7 @@ using System.Net;
 
 namespace Forecast.Shared.Responses;
 
-static class Success
+public static class Success
 {
     public static Success<T> Create<T>(HttpStatusCode code, string message, T data) =>
         new((ushort)code, data, message);
@@ -11,4 +11,4 @@ static class Success
         new(code, data, message);
 }
 
-record Success<T>(ushort Code, T Data, string Message);
+public record Success<T>(ushort Code, T Data, string Message);

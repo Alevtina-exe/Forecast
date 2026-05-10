@@ -2,7 +2,7 @@ using System.Net;
 
 namespace Forecast.Shared.Responses;
 
-record Status(ushort Code, string Message)
+public record Status(ushort Code, string Message)
 {
     public static Status Create(HttpStatusCode code, string message) => new((ushort)code, message);
 
