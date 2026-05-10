@@ -1,13 +1,9 @@
 using Forecast.Clients;
-using Forecast.Models.Weather;
+using Forecast.Models;
 using Microsoft.AspNetCore.Mvc;
-using Sprache;
 using System.Globalization;
 
 namespace Forecast.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
 public class CurrentWeatherController : ControllerBase
 {
     private readonly IEnumerable<IWeatherDataClient> _clients;
@@ -17,32 +13,29 @@ public class CurrentWeatherController : ControllerBase
         _clients = clients;
     }
 
+    private IWeatherDataClient GetClient(string providerName)
+    {
+        return _clients.FirstOrDefault(c =>
+            c.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException($"Провайдер '{providerName}' не найден.");
+    }
+    public async Task<WeatherForecast> GetWeatherForecast(string location, string providerName)
+    {
+        var client = GetClient(providerName);
+        return await client.GetWeatherForecastAsync(location);
+    }
+
     public async Task<CurrentWeather> GetCurrentWeather(string location, string providerName)
     {
-        var client = _clients.FirstOrDefault(c =>
-            c.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase));
-
-        if (client == null)
-        {
-            throw new ArgumentException($"Провайдер '{providerName}' не найден.");
-        }
-
-        decimal temp = 0;
+        var client = GetClient(providerName);
+        decimal temp;
 
         if (location.Contains(','))
         {
             var parts = location.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length == 2)
-            {
-                string latStr = parts[0].Trim().Replace(',', '.');
-                string lonStr = parts[1].Trim().Replace(',', '.');
-
-                decimal lat = decimal.Parse(latStr, CultureInfo.InvariantCulture);
-                decimal lon = decimal.Parse(lonStr, CultureInfo.InvariantCulture);
-
-                temp = await client.LocationCurrentTemperature(lat, lon);
-            }
+            decimal lat = decimal.Parse(parts[0], CultureInfo.InvariantCulture);
+            decimal lon = decimal.Parse(parts[1], CultureInfo.InvariantCulture);
+            temp = await client.LocationCurrentTemperature(lat, lon);
         }
         else
         {
@@ -71,5 +64,4 @@ public class CurrentWeatherController : ControllerBase
         var results = await Task.WhenAll(tasks);
         return Ok(results);
     }
-
 }

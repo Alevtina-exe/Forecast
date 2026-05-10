@@ -1,4 +1,4 @@
-﻿using Forecast.Models.Google;
+﻿using Forecast.Models;
 using Forecast.Utils;
 using System.Globalization;
 
@@ -53,13 +53,56 @@ public class GoogleWeatherDataClient : IWeatherDataClient
                                     $"Доступные города: {string.Join(", ", _cityRegistry.Keys)}");
     }
 
+    public async Task<WeatherForecast> GetWeatherForecastAsync(string location)
+    {
+        decimal lat, lon;
+
+        if (location.Contains(','))
+        {
+            var parts = location.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            lat = decimal.Parse(parts[0], CultureInfo.InvariantCulture);
+            lon = decimal.Parse(parts[1], CultureInfo.InvariantCulture);
+        }
+        else if (_cityRegistry.TryGetValue(location, out var coords))
+        {
+            lat = coords.Lat;
+            lon = coords.Lon;
+        }
+        else
+        {
+            throw new ArgumentException($"Локация '{location}' не поддерживается Google.");
+        }
+
+        var latStr = lat.ToString(CultureInfo.InvariantCulture);
+        var lonStr = lon.ToString(CultureInfo.InvariantCulture);
+        var url = $"https://weather.googleapis.com/v1/forecast/hours:lookup?key={_apiKey}&location.latitude={latStr}&location.longitude={lonStr}&hours=24";
+
+
+        var response = await _httpClient.GetFromJsonAsync<GoogleForecastRawResponse>(url);
+
+        if (response?.ForecastHours == null)
+        {
+            throw new Exception("Google не вернул данные прогноза. Проверьте поддержку региона.");
+        }
+
+        return new WeatherForecast
+        {
+            City = location,
+            Items = response.ForecastHours.Select(h => new ForecastItem
+            {
+                DateTime = DateTime.Parse(h.Interval?.StartTime ?? DateTime.Now.ToString()),
+                Temperature = h.Temperature?.Degrees ?? 0,
+                Condition = h.WeatherCondition?.Type ?? "UNKNOWN",
+                PrecipitationProbability = h.Precipitation?.Probability?.Percent ?? 0
+            }).ToList()
+        };
+    }
+
 
     private readonly Dictionary<string, (decimal Lat, decimal Lon)> _cityRegistry = new(StringComparer.OrdinalIgnoreCase)
     {
         { "Минск", (53.9000m, 27.5667m) },
         { "Лондон", (51.5074m, -0.1278m) },
-        { "Токио", (35.6762m, 139.6503m) },
-        { "Шанхай", (31.2304m, 121.4737m) },
         { "Варшава", (52.2297m, 21.0122m) }
     };
 }

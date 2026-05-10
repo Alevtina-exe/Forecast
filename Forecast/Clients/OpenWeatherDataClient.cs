@@ -1,5 +1,6 @@
-using System.Text.Json.Serialization;
+using Forecast.Models;
 using Forecast.Utils;
+using System.Text.Json.Serialization;
 
 namespace Forecast.Clients;
 
@@ -63,16 +64,40 @@ public class OpenWeatherDataClient : IWeatherDataClient
             throw new ApiCallException(e.Message);
         }
     }
-}
 
-class OpenWeatherResponse
-{
-    [JsonPropertyName("main")]
-    public required Nested Main { get; set; }
-
-    public class Nested
+    public async Task<WeatherForecast> GetWeatherForecastAsync(string location)
     {
-        [JsonPropertyName("temp")]
-        public decimal Temp { get; set; }
+        string url;
+
+        if (location.Contains(','))
+        {
+            var parts = location.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var lat = parts[0].Trim();
+            var lon = parts[1].Trim();
+            url = $"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={_apiKey}&units=metric";
+        }
+        else
+        {
+            url = $"https://api.openweathermap.org/data/2.5/forecast?q={location}&appid={_apiKey}&units=metric";
+        }
+
+        var response = await _httpClient.GetFromJsonAsync<OpenWeatherForecastRaw>(url);
+
+        if (response?.List == null)
+            throw new Exception("Не удалось получить прогноз от OpenWeather");
+
+        return new WeatherForecast
+        {
+            City = response.City?.Name ?? location,
+            Items = response.List.Select(i => new ForecastItem
+            {
+                DateTime = DateTimeOffset.FromUnixTimeSeconds(i.Dt).DateTime.ToLocalTime(),
+                Temperature = i.Main?.Temp ?? 0,
+                Condition = i.Weather?.FirstOrDefault()?.Main ?? "Unknown",
+                PrecipitationProbability = (int)((i.Pop ?? 0) * 100)
+            }).ToList()
+        };
     }
 }
+
+

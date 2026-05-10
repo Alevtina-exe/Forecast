@@ -1,6 +1,6 @@
-using Forecast.Controllers;
-using Forecast.Models.Weather;
+using Forecast.Models;
 using Forecast.Shared.Responses;
+using Forecast.Controllers;
 using Forecast.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -20,8 +20,14 @@ public static class WeatherApi
             .WithDescription("Возвращает погоду для города (Минск, Лондон...) или координат (lat,lon)");
 
         groups.MapGet("weather/batch", WeatherApi.HandleGetWeatherBatch)
-        .WithName("GetWeatherBatch")
-        .WithDescription("Получение погоды для списка локаций параллельно");
+            .WithName("GetWeatherBatch")
+            .WithTags("weather")
+            .WithDescription("Получение погоды для списка локаций параллельно");
+
+        groups.MapGet("weather/forecast", WeatherApi.HandleGetForecast)
+            .WithName("GetForecast")
+            .WithTags("weather")
+            .WithDescription("Детальный прогноз (осадки, температура по часам) для одной локации");
 
         return groups;
     }
@@ -56,6 +62,22 @@ public static class WeatherApi
         catch (Exception e)
         {
             return TypedResults.BadRequest(e.Message);
+        }
+    }
+
+    private static async Task<IResult> HandleGetForecast(
+    [FromServices] CurrentWeatherController controller,
+    [FromQuery] string location,
+    [FromQuery] string provider = "OpenWeather")
+    {
+        try
+        {
+            var forecast = await controller.GetWeatherForecast(location, provider);
+            return TypedResults.Ok(Success.Create(200, "success", forecast));
+        }
+        catch (Exception e)
+        {
+            return TypedResults.BadRequest(Status.Create(400, e.Message));
         }
     }
 }
