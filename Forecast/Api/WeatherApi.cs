@@ -33,7 +33,7 @@ public static class WeatherApi
     }
 
     public static async Task<IResult> HandleGetCurrentWeather(
-        [FromServices] CurrentWeatherController controller,
+        [FromServices] ICurrentWeatherController controller,
         string location,
         [FromQuery] string provider = "OpenWeather" 
     )
@@ -50,7 +50,7 @@ public static class WeatherApi
     }
 
     public static async Task<IResult> HandleGetWeatherBatch(
-        [FromServices] CurrentWeatherController controller,
+        [FromServices] ICurrentWeatherController controller,
         [FromQuery] string[] locations,
         [FromQuery] string provider = "OpenWeather")
     {
@@ -66,7 +66,7 @@ public static class WeatherApi
     }
 
     public static async Task<IResult> HandleGetForecast(
-    [FromServices] CurrentWeatherController controller,
+    [FromServices] ICurrentWeatherController controller,
     [FromQuery] string location,
     [FromQuery] string provider = "OpenWeather")
     {

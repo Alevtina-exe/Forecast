@@ -24,7 +24,7 @@ public class CurrentWeatherControllerTests
 
         var result = await _controller.GetCurrentWeather("Minsk", "TestProvider");
 
-        Assert.Equal(20m, result.Temperature);
+        Assert.Equal(20m, result);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class CurrentWeatherControllerTests
 
         var result = await _controller.GetCurrentWeather("53.9,27.56", "TestProvider");
 
-        Assert.Equal(15m, result.Temperature);
+        Assert.Equal(15m, result);
     }
 
     [Fact]

@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 
 namespace Forecast.Controllers;
-public class CurrentWeatherController : ControllerBase
+
+public class CurrentWeatherController : ControllerBase, ICurrentWeatherController
 {
     private readonly IEnumerable<IWeatherDataClient> _clients;
 
@@ -19,13 +20,14 @@ public class CurrentWeatherController : ControllerBase
             c.ProviderName.Equals(providerName, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException($"Провайдер '{providerName}' не найден.");
     }
+
     public async Task<WeatherForecast> GetWeatherForecast(string location, string providerName)
     {
         var client = GetClient(providerName);
         return await client.GetWeatherForecastAsync(location);
     }
 
-    public async Task<CurrentWeather> GetCurrentWeather(string location, string providerName)
+    public async Task<decimal> GetCurrentWeather(string location, string providerName)
     {
         var client = GetClient(providerName);
         decimal temp;
@@ -42,26 +44,24 @@ public class CurrentWeatherController : ControllerBase
             temp = await client.CityCurrentTemperature(location);
         }
 
-        return new CurrentWeather(temp);
+        return temp;
     }
 
-    [HttpGet("batch")]
-    public async Task<IActionResult> GetWeatherBatch([FromQuery] string[] locations, [FromQuery] string providerName)
+    public async Task<IEnumerable<object>> GetWeatherBatch(string[] locations, string providerName)
     {
         var tasks = locations.Select(async loc =>
         {
             try
             {
-                var weather = await GetCurrentWeather(loc, providerName);
-                return new { Location = loc, Temperature = weather.Temperature, Status = "Success" };
+                var temp = await GetCurrentWeather(loc, providerName);
+                return new { Location = loc, Temperature = temp, Status = "Success" };
             }
             catch (Exception ex)
             {
-                return new { Location = loc, Temperature = 0m, Status = $"Error: {ex.Message}" };
+                return (object)new { Location = loc, Temperature = 0m, Status = $"Error: {ex.Message}" };
             }
         });
 
-        var results = await Task.WhenAll(tasks);
-        return Ok(results);
+        return await Task.WhenAll(tasks);
     }
 }
