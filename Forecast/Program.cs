@@ -16,11 +16,10 @@ builder.Services.AddOpenApiDocument(config =>
     config.Title = "Weather Example API";
     config.Version = "v1";
 });
-builder.Services.AddHttpClient<IWeatherDataClient, OpenWeatherDataClient>();
 builder.Services.AddHttpClient<IWeatherDataClient, GoogleWeatherDataClient>();
+builder.Services.AddHttpClient<IWeatherDataClient, OpenWeatherDataClient>();
+builder.Services.AddScoped<ICurrentWeatherController, CurrentWeatherController>();
 builder.Services.AddScoped<CurrentWeatherController>();
-builder.Services.AddSingleton<IWeatherDataClient, OpenWeatherDataClient>();
-builder.Services.AddSingleton<CurrentWeatherController>();
 
 var app = builder.Build();
 

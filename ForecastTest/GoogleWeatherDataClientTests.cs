@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -17,7 +18,6 @@ public class GoogleWeatherDataClientTests
     public GoogleWeatherDataClientTests()
     {
         _configMock = new Mock<IConfiguration>();
-
         _configMock.Setup(x => x[It.IsAny<string>()]).Returns("fake_api_key");
 
         var mockSection = new Mock<IConfigurationSection>();
@@ -27,6 +27,9 @@ public class GoogleWeatherDataClientTests
         _httpClient = new HttpClient();
     }
 
+    /// <summary>
+    /// Проверка выброса исключения при запросе прогноза для города, отсутствующего в реестре.
+    /// </summary>
     [Fact]
     public async Task GetWeatherForecastAsync_UnsupportedCity_ThrowsArgumentException()
     {
@@ -36,6 +39,9 @@ public class GoogleWeatherDataClientTests
             client.GetWeatherForecastAsync("UnknownCity"));
     }
 
+    /// <summary>
+    /// Проверка обработки пустой строки вместо локации.
+    /// </summary>
     [Fact]
     public async Task GetWeatherForecastAsync_EmptyLocation_ThrowsException()
     {
@@ -45,6 +51,9 @@ public class GoogleWeatherDataClientTests
             client.GetWeatherForecastAsync(""));
     }
 
+    /// <summary>
+    /// Проверка корректности возвращаемого имени провайдера.
+    /// </summary>
     [Fact]
     public void ProviderName_IsGoogle()
     {
@@ -52,10 +61,12 @@ public class GoogleWeatherDataClientTests
         Assert.Equal("Google", client.ProviderName);
     }
 
+    /// <summary>
+    /// Тестирование успешного получения текущей температуры по координатам и маппинга JSON.
+    /// </summary>
     [Fact]
     public async Task GoogleWeather_LocationCurrentTemperature_Success_IncreasesCoverage()
     {
-        // Arrange
         var mockConfig = new Mock<IConfiguration>();
         mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY").Value).Returns("fake_google_key");
 
@@ -73,112 +84,54 @@ public class GoogleWeatherDataClientTests
         var httpClient = new HttpClient(handlerMock.Object);
         var client = new GoogleWeatherDataClient(mockConfig.Object, httpClient);
 
-        // Act
         var temp = await client.LocationCurrentTemperature(53.9m, 27.5m);
 
-        // Assert
         Assert.Equal(15.7m, temp);
     }
 
-    [Fact]
-    public async Task Google_LocationCurrentTemperature_ReturnsValue()
-    {
-        var mockConfig = new Mock<IConfiguration>();
-        mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY").Value).Returns("key");
-
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{ \"temperature\": { \"degrees\": 20.0 } }", System.Text.Encoding.UTF8, "application/json")
-            });
-
-        var client = new GoogleWeatherDataClient(mockConfig.Object, new HttpClient(handlerMock.Object));
-
-        var result = await client.LocationCurrentTemperature(53.9m, 27.5m);
-
-        Assert.Equal(20.0m, result);
-    }
-    [Fact]
-    public async Task Google_LocationCurrentTemperature_Success()
-    {
-        // 1. Настройка конфигурации
-        var mockConfig = new Mock<IConfiguration>();
-        var mockSection = new Mock<IConfigurationSection>();
-        mockSection.Setup(s => s.Value).Returns("fake_google_key");
-        mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY")).Returns(mockSection.Object);
-
-        // 2. Настройка сетевого ответа (JSON)
-        var jsonResponse = "{ \"temperature\": { \"degrees\": 22.5 } }";
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(jsonResponse, System.Text.Encoding.UTF8, "application/json")
-            });
-
-        var httpClient = new HttpClient(handlerMock.Object);
-        var client = new GoogleWeatherDataClient(mockConfig.Object, httpClient);
-
-        // 3. Вызов метода (проход по основному пути)
-        var result = await client.LocationCurrentTemperature(53.9m, 27.5m);
-
-        // 4. Проверка
-        Assert.Equal(22.5m, result);
-    }
-
+    /// <summary>
+    /// Проверка выброса ArgumentException при поиске температуры в неподдерживаемом городе.
+    /// </summary>
     [Fact]
     public async Task Google_UnknownCity_ThrowsArgumentException()
     {
-        // Настраиваем конфиг, чтобы конструктор не падал
         var mockConfig = new Mock<IConfiguration>();
         var mockSection = new Mock<IConfigurationSection>();
         mockSection.Setup(s => s.Value).Returns("fake_key");
         mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY")).Returns(mockSection.Object);
 
-        // HttpClient для этого теста может быть пустым, так как до запроса дело не дойдет
         var client = new GoogleWeatherDataClient(mockConfig.Object, new HttpClient());
 
-        // Проверяем, что метод выбросит ArgumentException на неизвестный город
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             client.CityCurrentTemperature("UnknownCity")
         );
 
-        // Проверяем, что в сообщении есть список доступных городов (для точности теста)
         Assert.Contains("Минск", exception.Message);
         Assert.Contains("Лондон", exception.Message);
     }
 
+    /// <summary>
+    /// Тестирование успешного получения почасового прогноза и корректности парсинга вложенных полей Google API.
+    /// </summary>
     [Fact]
     public async Task Google_GetWeatherForecastAsync_Success_Final()
     {
-        // 1. Настройка конфигурации
         var mockConfig = new Mock<IConfiguration>();
         var mockSection = new Mock<IConfigurationSection>();
         mockSection.Setup(s => s.Value).Returns("fake_key");
         mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY")).Returns(mockSection.Object);
 
-        // 2. Формируем JSON точно по именам свойств в твоем классе (ForecastHours)
-        // Используем camelCase, так как GetFromJsonAsync по умолчанию настроен на него
         var jsonResponse = @"
-    {
-        ""forecastHours"": [
-            {
-                ""interval"": { ""startTime"": ""2026-05-10T12:00:00Z"" },
-                ""temperature"": { ""degrees"": 15.5 },
-                ""weatherCondition"": { ""type"": ""CLEAR"" },
-                ""precipitation"": { ""probability"": { ""percent"": 5 } }
-            }
-        ]
-    }";
+        {
+            ""forecastHours"": [
+                {
+                    ""interval"": { ""startTime"": ""2026-05-10T12:00:00Z"" },
+                    ""temperature"": { ""degrees"": 15.5 },
+                    ""weatherCondition"": { ""type"": ""CLEAR"" },
+                    ""precipitation"": { ""probability"": { ""percent"": 5 } }
+                }
+            ]
+        }";
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock.Protected()
@@ -196,10 +149,8 @@ public class GoogleWeatherDataClientTests
         var httpClient = new HttpClient(handlerMock.Object);
         var client = new GoogleWeatherDataClient(mockConfig.Object, httpClient);
 
-        // 3. Вызов метода. "Минск" есть в твоем _cityRegistry, так что координаты найдутся
         var result = await client.GetWeatherForecastAsync("Минск");
 
-        // 4. Проверки
         Assert.NotNull(result);
         Assert.Equal("Минск", result.City);
         Assert.Single(result.Items);
@@ -207,6 +158,9 @@ public class GoogleWeatherDataClientTests
         Assert.Equal("CLEAR", result.Items[0].Condition);
     }
 
+    /// <summary>
+    /// Проверка обработки 500 ошибки (Internal Server Error) от Google и выброса ApiCallException.
+    /// </summary>
     [Fact]
     public async Task Google_LocationCurrentTemperature_ThrowsApiCallException_OnInternalError()
     {
@@ -220,13 +174,12 @@ public class GoogleWeatherDataClientTests
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
-                StatusCode = HttpStatusCode.InternalServerError // Ошибка 500
+                StatusCode = HttpStatusCode.InternalServerError
             });
 
         var client = new GoogleWeatherDataClient(mockConfig.Object, new HttpClient(handlerMock.Object));
 
-        // Проверяем, что при ошибке 500 летит наше исключение
-        await Assert.ThrowsAsync<Forecast.Utils.ApiCallException>(() =>
+        await Assert.ThrowsAsync<ApiCallException>(() =>
             client.LocationCurrentTemperature(53.9m, 27.5m)
         );
     }

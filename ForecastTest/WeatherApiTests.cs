@@ -1,11 +1,10 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Configuration;
 using Moq;
-using Moq.Protected;
 using Xunit;
 using Forecast.Api;
-using Forecast.Clients;
 using Forecast.Controllers;
 using Forecast.Models;
 using Forecast.Shared.Responses;
@@ -14,6 +13,9 @@ namespace ForecastTest;
 
 public class WeatherApiTests
 {
+    /// <summary>
+    /// Проверка успешного сценария API: данные от контроллера должны упаковываться в Ok с объектом Success.
+    /// </summary>
     [Fact]
     public async Task HandleGetForecast_Success_Test()
     {
@@ -29,6 +31,9 @@ public class WeatherApiTests
         Assert.Equal("Minsk", okResult.Value.Data.City);
     }
 
+    /// <summary>
+    /// Проверка сценария ошибки API: при исключении в контроллере API должен возвращать BadRequest со статусом ошибки.
+    /// </summary>
     [Fact]
     public async Task HandleGetForecast_Error_Test()
     {

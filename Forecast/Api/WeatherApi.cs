@@ -1,11 +1,13 @@
+using Forecast.Controllers;
 using Forecast.Models;
 using Forecast.Shared.Responses;
-using Forecast.Controllers;
 using Forecast.Utils;
+using Forecawst.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Forecast.Api;
 
@@ -41,7 +43,7 @@ public static class WeatherApi
         try
         {
             var weather = await controller.GetCurrentWeather(location, provider);
-            return TypedResults.Ok(Success.Create(200, "success", weather));
+            return TypedResults.Ok(new TemperatureResponse(200, weather, "success"));
         }
         catch (Exception e)
         {
