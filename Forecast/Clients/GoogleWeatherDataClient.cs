@@ -43,8 +43,23 @@ public class GoogleWeatherDataClient : IWeatherDataClient
         }
     }
 
-    public Task<decimal> CityCurrentTemperature(string cityName)
-    { 
-        throw new NotSupportedException("Google Provider требует координаты (lat, lon). Поиск по названию города не поддерживается напрямую.");
+    public async Task<decimal> CityCurrentTemperature(string cityName)
+    {
+        if (_cityRegistry.TryGetValue(cityName, out var coords))
+        {
+            return await LocationCurrentTemperature(coords.Lat, coords.Lon);
+        }
+        throw new ArgumentException($"Город '{cityName}' не поддерживается провайдером Google. " +
+                                    $"Доступные города: {string.Join(", ", _cityRegistry.Keys)}");
     }
+
+
+    private readonly Dictionary<string, (decimal Lat, decimal Lon)> _cityRegistry = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Минск", (53.9000m, 27.5667m) },
+        { "Лондон", (51.5074m, -0.1278m) },
+        { "Токио", (35.6762m, 139.6503m) },
+        { "Шанхай", (31.2304m, 121.4737m) },
+        { "Варшава", (52.2297m, 21.0122m) }
+    };
 }

@@ -14,12 +14,12 @@ public static class WeatherApi
     public static RouteGroupBuilder MapCurrentWeatherApi(this RouteGroupBuilder groups)
     {
         groups
-            .MapGet("weather/{location}", WeatherApi.HandleGetCurrentWeather)
+            .MapGet("weather/location", WeatherApi.HandleGetCurrentWeather)
             .WithName("GetCurrentWeather")
             .WithTags(["weather"])
             .WithDescription("Возвращает погоду для города (Минск, Лондон...) или координат (lat,lon)");
 
-        groups.MapPost("weather/batch", WeatherApi.HandleGetWeatherBatch)
+        groups.MapGet("weather/batch", WeatherApi.HandleGetWeatherBatch)
         .WithName("GetWeatherBatch")
         .WithDescription("Получение погоды для списка локаций параллельно");
 
@@ -44,9 +44,9 @@ public static class WeatherApi
     }
 
     private static async Task<IResult> HandleGetWeatherBatch(
-    [FromServices] CurrentWeatherController controller,
-    [FromBody] string[] locations,
-    [FromQuery] string provider = "OpenWeather")
+        [FromServices] CurrentWeatherController controller,
+        [FromQuery] string[] locations,
+        [FromQuery] string provider = "OpenWeather")
     {
         try
         {

@@ -1,11 +1,14 @@
 using Forecast.Clients;
 using Forecast.Models.Weather;
+using Microsoft.AspNetCore.Mvc;
 using Sprache;
 using System.Globalization;
 
 namespace Forecast.Controllers;
 
-public class CurrentWeatherController
+[ApiController]
+[Route("api/[controller]")]
+public class CurrentWeatherController : ControllerBase
 {
     private readonly IEnumerable<IWeatherDataClient> _clients;
 
@@ -49,11 +52,24 @@ public class CurrentWeatherController
         return new CurrentWeather(temp);
     }
 
-    public async Task<IEnumerable<CurrentWeather>> GetWeatherBatch(IEnumerable<string> locations, string providerName)
+    [HttpGet("batch")]
+    public async Task<IActionResult> GetWeatherBatch([FromQuery] string[] locations, [FromQuery] string providerName)
     {
-        var tasks = locations.Select(loc => GetCurrentWeather(loc, providerName));
+        var tasks = locations.Select(async loc =>
+        {
+            try
+            {
+                var weather = await GetCurrentWeather(loc, providerName);
+                return new { Location = loc, Temperature = weather.Temperature, Status = "Success" };
+            }
+            catch (Exception ex)
+            {
+                return new { Location = loc, Temperature = 0m, Status = $"Error: {ex.Message}" };
+            }
+        });
 
-        return await Task.WhenAll(tasks);
+        var results = await Task.WhenAll(tasks);
+        return Ok(results);
     }
 
 }
