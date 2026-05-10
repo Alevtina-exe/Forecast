@@ -158,36 +158,53 @@ public class GoogleWeatherDataClientTests
     }
 
     [Fact]
-    public async Task Google_GetWeatherForecastAsync_Success()
+    public async Task Google_GetWeatherForecastAsync_Success_Final()
     {
+        // 1. Настройка конфигурации
         var mockConfig = new Mock<IConfiguration>();
         var mockSection = new Mock<IConfigurationSection>();
         mockSection.Setup(s => s.Value).Returns("fake_key");
         mockConfig.Setup(c => c.GetSection("GOOGLE_API_KEY")).Returns(mockSection.Object);
 
-        var jsonResponse = @"{
-        ""city"": { ""name"": ""Minsk"" },
-        ""list"": [
-            { ""dt"": 1715335200, ""main"": { ""temp"": 15.0 }, ""weather"": [{ ""main"": ""Clear"" }], ""pop"": 0 }
+        // 2. Формируем JSON точно по именам свойств в твоем классе (ForecastHours)
+        // Используем camelCase, так как GetFromJsonAsync по умолчанию настроен на него
+        var jsonResponse = @"
+    {
+        ""forecastHours"": [
+            {
+                ""interval"": { ""startTime"": ""2026-05-10T12:00:00Z"" },
+                ""temperature"": { ""degrees"": 15.5 },
+                ""weatherCondition"": { ""type"": ""CLEAR"" },
+                ""precipitation"": { ""probability"": { ""percent"": 5 } }
+            }
         ]
     }";
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
                 Content = new StringContent(jsonResponse, System.Text.Encoding.UTF8, "application/json")
             });
 
-        var client = new GoogleWeatherDataClient(mockConfig.Object, new HttpClient(handlerMock.Object));
+        var httpClient = new HttpClient(handlerMock.Object);
+        var client = new GoogleWeatherDataClient(mockConfig.Object, httpClient);
 
+        // 3. Вызов метода. "Минск" есть в твоем _cityRegistry, так что координаты найдутся
         var result = await client.GetWeatherForecastAsync("Минск");
 
-        // Проверяем то, что точно есть в модели WeatherForecast
+        // 4. Проверки
         Assert.NotNull(result);
-        Assert.Equal("Minsk", result.City);
+        Assert.Equal("Минск", result.City);
+        Assert.Single(result.Items);
+        Assert.Equal(15.5m, result.Items[0].Temperature);
+        Assert.Equal("CLEAR", result.Items[0].Condition);
     }
 
     [Fact]

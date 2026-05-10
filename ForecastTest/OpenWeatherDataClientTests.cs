@@ -1,4 +1,5 @@
 ﻿using Forecast.Clients;
+using Forecast.Utils;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
@@ -75,6 +76,68 @@ public class OpenWeatherDataClientTests
 
         Assert.NotNull(result);
         Assert.Equal("Minsk", result.City);
+    }
+
+    [Fact]
+    public async Task OpenWeather_GetWeatherForecastAsync_Success()
+    {
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c.GetSection("OPENWEATHER_API_KEY").Value).Returns("fake_key");
+        mockConfig.Setup(c => c.GetSection("OPENWEATHER_BASE_URL").Value).Returns("https://api.openweathermap.org/data/2.5/");
+
+        var jsonResponse = @"
+    {
+        ""city"": { ""name"": ""Minsk"" },
+        ""list"": [
+            {
+                ""dt"": 1715335200,
+                ""main"": { ""temp"": 20.5 },
+                ""weather"": [{ ""main"": ""Clouds"" }],
+                ""pop"": 0.45
+            }
+        ]
+    }";
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(jsonResponse, System.Text.Encoding.UTF8, "application/json")
+            });
+
+        var client = new OpenWeatherDataClient(mockConfig.Object, new HttpClient(handlerMock.Object));
+
+        var result = await client.GetWeatherForecastAsync("Minsk");
+
+        Assert.Equal("Minsk", result.City);
+        Assert.Equal(20.5m, result.Items[0].Temperature);
+        Assert.Equal(45, result.Items[0].PrecipitationProbability); // Проверка (0.45 * 100)
+        Assert.Equal("Clouds", result.Items[0].Condition);
+    }
+
+    [Fact]
+    public async Task OpenWeather_CityCurrentTemperature_NotFound_ThrowsApiCallException()
+    {
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c.GetSection("OPENWEATHER_API_KEY").Value).Returns("fake_key");
+
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound // 404
+            });
+
+        var client = new OpenWeatherDataClient(mockConfig.Object, new HttpClient(handlerMock.Object));
+
+        var exception = await Assert.ThrowsAsync<ApiCallException>(() =>
+            client.CityCurrentTemperature("NonExistentCity")
+        );
+
+        Assert.Contains("not found", exception.Message.ToLower());
     }
 
 }
