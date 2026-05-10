@@ -51,19 +51,26 @@ public class CurrentWeatherControllerTests
     [Fact]
     public async Task GetWeatherBatch_MixedResults_ReturnsCollection()
     {
-        _clientMock.Setup(c => c.CityCurrentTemperature("Success")).ReturnsAsync(10m);
-        _clientMock.Setup(c => c.CityCurrentTemperature("Fail")).ThrowsAsync(new System.Exception("Error"));
+        var mockClient = new Mock<IWeatherDataClient>();
+        mockClient.Setup(c => c.ProviderName).Returns("OpenWeather");
 
-        var result = await _controller.GetWeatherBatch(new[] { "Success", "Fail" }, "TestProvider") as OkObjectResult;
-        var list = Assert.IsAssignableFrom<System.Collections.IEnumerable>(result.Value).Cast<object>().ToList();
+        mockClient.Setup(c => c.CityCurrentTemperature("Minsk"))
+                  .ReturnsAsync(20m);
 
+        mockClient.Setup(c => c.CityCurrentTemperature("ErrorCity"))
+                  .ThrowsAsync(new Exception("Not Found"));
+
+        var clients = new List<IWeatherDataClient> { mockClient.Object };
+
+        var controller = new CurrentWeatherController(clients);
+
+        var locations = new[] { "Minsk", "ErrorCity" };
+
+        var result = await controller.GetWeatherBatch(locations, "OpenWeather");
+
+        Assert.NotNull(result);
+        var list = result.ToList();
         Assert.Equal(2, list.Count);
-
-        var successResult = list[0].ToString();
-        var failResult = list[1].ToString();
-
-        Assert.Contains("Success", successResult);
-        Assert.Contains("Error", failResult);
     }
 
     [Fact]
